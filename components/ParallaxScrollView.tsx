@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactElement } from 'react';
+import React from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
   interpolate,
@@ -6,27 +6,29 @@ import Animated, {
   useAnimatedStyle,
   useScrollViewOffset,
 } from 'react-native-reanimated';
-
+import { PropsWithChildren, ReactElement } from 'react';
 import { ThemedView } from '@/components/ThemedView';
 import { useBottomTabOverflow } from '@/components/ui/TabBarBackground';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-const HEADER_HEIGHT = 250;
+const HEADER_HEIGHT = 400;
 
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
-  headerBackgroundColor: { dark: string; light: string };
+  headerBackgroundColor: React.ReactElement | { dark: string; light: string };
 }>;
 
 export default function ParallaxScrollView({
   children,
   headerImage,
   headerBackgroundColor,
+  ...props
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const colorScheme = useColorScheme();
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
   const bottom = useBottomTabOverflow();
+
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -50,13 +52,16 @@ export default function ParallaxScrollView({
         ref={scrollRef}
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ bottom }}
-        contentContainerStyle={{ paddingBottom: bottom }}>
-        <Animated.View
-          style={[
-            styles.header,
-            { backgroundColor: headerBackgroundColor[colorScheme] },
-            headerAnimatedStyle,
-          ]}>
+        contentContainerStyle={{ paddingBottom: bottom }}
+        {...props}>
+        <Animated.View style={[styles.header, headerAnimatedStyle]}>
+          {React.isValidElement(headerBackgroundColor) ? (
+            headerBackgroundColor
+          ) : (
+            <ThemedView
+              style={styles.wrapper}
+            />
+          )}
           {headerImage}
         </Animated.View>
         <ThemedView style={styles.content}>{children}</ThemedView>
@@ -78,5 +83,10 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 16,
     overflow: 'hidden',
+  },
+  wrapper: {
+    ...StyleSheet.absoluteFillObject, // Fill the parent container
+    top: 10, // Add custom offset
+    backgroundColor: 'transparent', // Set a transparent background
   },
 });
